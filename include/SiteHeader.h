@@ -38,6 +38,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     padding-bottom:20px;
   }
   .button {
+    min-width: 175px;
     padding: 15px 50px;
     font-size: 24px;
     text-align: center;
@@ -60,7 +61,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     box-shadow: 2 2px #CDCDCD;
     transform: translateY(2px);
   }
-  .state, .brightness{
+  .state, .position{
     font-size: 1.5rem;
     color:#8c8c8c;
     font-weight: bold;
@@ -76,15 +77,15 @@ body {
 }
 
 .vertical-slider {
-    transform: rotateZ(270deg) translateX(-30px);
+    transform: rotateZ(90deg) translateX(30px);
     touch-action: none;
     display: inline-block;
     width: 110px;
-    height: 50px;
+    height: 175px;
     -webkit-appearance: none;
     appearance: none;
     outline: none;
-    border-radius: 8px;
+    border-radius: 0 8px 8px 0;
     background-color: transparent;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
@@ -118,23 +119,22 @@ body {
 </head>
 <body>
   <div class="topnav">
-    <h1>ESP WebSocket Server</h1>
+    <h1>Smart Curtain</h1>
   </div>
   <div class="content">
     <div class="card">
-      <h2>Ledstrip</h2>
-      <p class="brightness">brightness: <span id="brightness">%BRIGHTNESS%</span></p>
+      <p class="position">position: <span id="position">---</span></p>
       <div class="range">
-        <input class="vertical-slider" name="blur" id="blur" type="range" min="0" max="100" value="5" oninput="changeRange(this)" />
+        <input type="range" onchange="sentChange(this)" id="slider" min="0" max="100" step="1" value ="100" class="slider">
+        <input class="vertical-slider" name="blur" id="blur" type="range" min="0" max="100" value="5" oninput="changeRange(this)" onchange="sentChange(this)"/>
+
       </div>      
-      <p class="state">state: <span id="state">%STATE%</span></p>
+      <p class="state">state: <span id="state">---</span></p>
+      <p class="state">homepoint: <span id="homepoint">---</span></p>
                       
-      <p class="switch">
-          <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="50" max="100" step="1" value ="0" class="slider">
-      </p>
-      <p class="state">Max Brightness: <span id="sliderValue2"></span> &percnt;</p>
-      
-      <p><button id="button" class="button">Toggle</button></p>
+      <p><button id="upButton" class="button">Up</button></p>
+      <p><button id="downButton" class="button">Down</button></p>
+      <p><button id="stopButton" class="button">Stop</button></p>
 
       
     </div>
@@ -160,23 +160,23 @@ body {
   function onMessage(event) {
     var state;
     //console.log(event.data)
-    var ledstrip = JSON.parse(event.data).ledstrip
-    console.log(ledstrip);
-    if (ledstrip.state == "1"){
-      state = "ON";
+    var curtain = JSON.parse(event.data).curtain
+    console.log(curtain);
+    if (curtain.state == "0"){
+      state = "STOPED";
     }
     else{
-      state = "OFF";
+      state = "MOVING";
     }
 
     document.getElementById('state').innerHTML = state;
-    document.getElementById('brightness').innerHTML = Math.trunc(ledstrip.brightness) + '%';
-    document.getElementById("slider2").value = Math.trunc(ledstrip.maxBrightness100);
+    document.getElementById('position').innerHTML = Math.trunc(curtain.currentPos);
+    document.getElementById('homepoint').innerHTML = Math.trunc(curtain.homepoint);
 
-    if (document.getElementById("blur").value != Math.trunc(ledstrip.targetBrightness100) && document.getElementById("blur") !== document.activeElement){
-      document.getElementById("blur").style.backgroundImage = getSliderBgCss(Math.trunc(ledstrip.targetBrightness100));
-      document.getElementById("blur").value = Math.trunc(ledstrip.targetBrightness100);
-    }
+    // if (document.getElementById("blur").value != Math.trunc(curtain.targetPos100) && document.getElementById("blur") !== document.activeElement){
+    //   document.getElementById("blur").style.backgroundImage = getSliderBgCss(Math.trunc(curtain.targetPos100));
+    //   document.getElementById("blur").value = Math.trunc(curtain.targetPos100);
+    // }
     
   }
   function onLoad(event) {
@@ -184,18 +184,20 @@ body {
     initButton();
   }
   function initButton() {
-    document.getElementById('button').addEventListener('click', toggle);
+    document.getElementById('upButton').addEventListener('click', goUp);
+    document.getElementById('downButton').addEventListener('click', goDown);
+    document.getElementById('stopButton').addEventListener('click', stop);
   }
-  function toggle(){
-    websocket.send('toggle');
+
+
+  function goUp(){
+    websocket.send('goUp');
   }
-  function updateSliderPWM(element) {
-  var sliderNumber = element.id.charAt(element.id.length-1);
-  var sliderValue = document.getElementById(element.id).value;
-  var sliderText = document.getElementById("sliderValue"+sliderNumber)
-  if (sliderText != null) {sliderText.innerHTML = sliderValue}
-  console.log(sliderValue);
-  websocket.send(sliderNumber+"s"+sliderValue.toString()+";");
+  function goDown(){
+    websocket.send('goDown');
+  }
+  function stop(){
+    websocket.send('stop');
   }
 
   function getSliderBgCss(percent){
@@ -211,6 +213,13 @@ body {
     // const percent100 = percent * 100;
     // _this.style.backgroundImage = getSliderBgCss(percent, percent100);
     _this.style.backgroundImage = getSliderBgCss(percent);
+    // websocket.send("1s"+_this.value.toString()+";");
+  }
+
+
+
+  function sentChange(_this) {
+    console.log(_this.value);
     websocket.send("1s"+_this.value.toString()+";");
   }
 </script>
