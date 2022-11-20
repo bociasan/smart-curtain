@@ -93,10 +93,14 @@ void verifyCalibration(){
 }
 
 void handleMoveTo(long pos){
+  
   verifyCalibration();
   if (pos>=0 && pos <= homePosition && stepper.currentPosition() != pos) {
+    Serial.printf("Moving to: %ld\n", pos);
     handleStartMotor();
     stepper.moveTo(pos);
+  } else {
+    Serial.printf("Couldn't move to %ld!\n", pos);
   }
 }
 
@@ -110,6 +114,7 @@ void handleButtonUp(){
     stepper.moveTo(homePosition);
   }
 }
+
 
 IRAM_ATTR void isrButtonUp(){
   handleButtonUp();
@@ -233,7 +238,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
 
     if (message.indexOf("1s") >= 0) {
       int messageInt = message.substring(2).toInt();
-      messageInt = 100 - messageInt;
       if (homePosition){
         long targetPosition = map(messageInt, 0, 100, 0, homePosition);
         handleMoveTo(targetPosition);

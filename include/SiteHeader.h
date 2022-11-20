@@ -72,30 +72,47 @@ body {
 --bg-value-color: rgba(15, 139, 141,1);
 }
 
-.range{
-    height: 120px;
+.curtain-row{
+  display: flex;
+  fled-direction: row;
+  justify-content: space-around;
+}
+
+.slider {
+  touch-action: none;
+  transform: rotateZ(-90deg) translateX(-50px) translateY(-55px);
+  accent-color: var(--bg-value-color);
+}
+
+.slider-box{
+  width: 20px;
+}
+
+.vertical-slider-box{
+  width: 180px;
 }
 
 .vertical-slider {
-    transform: rotateZ(90deg) translateX(30px);
-    touch-action: none;
-    display: inline-block;
-    width: 110px;
-    height: 175px;
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
-    border-radius: 0 8px 8px 0;
-    background-color: transparent;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    background-image: linear-gradient(
-            90deg,
-            var(--bg-value-color) 0%,
-            var(--bg-value-color) 30%,
-            var(--bg-range-color) 30%,
-            var(--bg-range-color) 100%
-    );
+  transform: rotateZ(90deg) translateX(30px);
+  transform: rotateZ(90deg) translateX(-25px);
+  touch-action: none;
+  display: inline-block;
+  width: 110px;
+  height: 175px;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  border-radius: 0 8px 8px 0;
+  background-color: transparent;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  background-image: linear-gradient(
+          90deg,
+          var(--bg-value-color) 0%,
+          var(--bg-value-color) 15%,
+          var(--bg-range-color) 15%,
+          var(--bg-range-color) 100%
+  );
 }
 
 .vertical-slider::-webkit-slider-runnable-track {
@@ -112,7 +129,35 @@ body {
     border: none;
     cursor: pointer;
 }
-  </style>
+
+.curtain-box{
+  width: 185px;
+}
+
+.curtain-up{
+  width: inherit;
+  background-color: var(--bg-value-color);
+  height: 10px;
+  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
+}
+
+.curtain-behind{
+  margin: auto;
+  width: 95%;
+  height: 110px;
+  border-radius: 0 0 8px 8px;
+  background-color: var(--bg-range-color);
+  overflow:hidden;
+  box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5);
+}
+
+.curtain{
+  height: 0%;
+  background-color: var(--bg-value-color);
+  transition: height 0.5s;
+  transition-timing-function: ease-out;
+}
+</style>
 <title>ESP Web Server</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
@@ -123,20 +168,33 @@ body {
   </div>
   <div class="content">
     <div class="card">
-      <p class="position">position: <span id="position">---</span></p>
-      <div class="range">
-        <input type="range" onchange="sentChange(this)" id="slider" min="0" max="100" step="1" value ="100" class="slider">
-        <input class="vertical-slider" name="blur" id="blur" type="range" min="0" max="100" value="5" oninput="changeRange(this)" onchange="sentChange(this)"/>
-
-      </div>      
-      <p class="state">state: <span id="state">---</span></p>
-      <p class="state">homepoint: <span id="homepoint">---</span></p>
+      <p class="state">homepoint: <span id="homepoint" style="width: 80px; display: inline-block; text-align: right;">---</span></p>
+      <div class="curtain-row">
+        <div class="slider-box">
+          <input type="range" onchange="sentChange(this)" id="slider" min="0" max="100" step="1" value ="0" class="slider">
+        </div>
+        <div class="vertical-slider-box">
+          
+          <div class="curtain-box">
+            <div class="curtain-up">
+            </div>
+            <div class="curtain-behind">
+              <div class="curtain" id="curtain">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="slider-box">
+          <span class="state" id="state" style="width: 120px; display: inline-block; transform: rotateZ(90deg) translateX(-30px); transform-origin: bottom left;">---</span>
+        </div>
+      </div>
+      <!--  <p class="state">state: <span id="state" style="width: 120px; display: inline-block; ">---</span></p>   -->
+      
+      <p class="position">position: <span id="position" style="width: 80px; display: inline-block; text-align: right;">---</span></p>
                       
       <p><button id="upButton" class="button">Up</button></p>
       <p><button id="downButton" class="button">Down</button></p>
       <p><button id="stopButton" class="button">Stop</button></p>
-
-      
     </div>
   </div>
 <script>
@@ -163,20 +221,27 @@ body {
     var curtain = JSON.parse(event.data).curtain
     console.log(curtain);
     if (curtain.state == "0"){
-      state = "STOPED";
+      state = "STOPPED";
     }
     else{
       state = "MOVING";
     }
 
-    document.getElementById('state').innerHTML = state;
+    curtain.curentPos100 = curtain.homepoint ? map_range(curtain.currentPos, 0, curtain.homepoint, 0, 100) : 0;
+    curtain.curentPos100 = 100 - curtain.curentPos100;
+
+    // document.getElementById('state').innerHTML = state;
+    document.getElementById('state').innerHTML = Math.round(curtain.curentPos100).toString() + '%';
+    document.getElementById('state').style.color = curtain.state ? "var(--bg-range-color)" : "var(--bg-value-color)";
     document.getElementById('position').innerHTML = Math.trunc(curtain.currentPos);
     document.getElementById('homepoint').innerHTML = Math.trunc(curtain.homepoint);
 
-    // if (document.getElementById("blur").value != Math.trunc(curtain.targetPos100) && document.getElementById("blur") !== document.activeElement){
-    //   document.getElementById("blur").style.backgroundImage = getSliderBgCss(Math.trunc(curtain.targetPos100));
-    //   document.getElementById("blur").value = Math.trunc(curtain.targetPos100);
-    // }
+    let curtainHeight = document.getElementById("curtain").style.height
+    if (curtainHeight != curtain.curentPos100){
+
+      // document.getElementById("curtain").style.height = curtain.curentPos100.toString()+'%';
+      document.getElementById("curtain").style.height = map_range(curtain.curentPos100, 0, 100, 0, 97).toString()+'%';
+    }
     
   }
   function onLoad(event) {
@@ -221,6 +286,10 @@ body {
   function sentChange(_this) {
     console.log(_this.value);
     websocket.send("1s"+_this.value.toString()+";");
+  }
+
+  function map_range(value, low1, high1, low2, high2) {
+    return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
   }
 </script>
 </body>
